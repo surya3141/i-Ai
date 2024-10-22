@@ -1,0 +1,83 @@
+import docx
+import os
+import pandas as pd
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
+
+# Define the default path for the Excel correction file
+DEFAULT_EXCEL_PATH = r'C:\path\to\your\correction_file.xlsx'
+
+def get_word_file():
+    """Prompt user to select a Word document."""
+    Tk().withdraw()  # Prevents Tkinter root window from appearing
+    word_file = askopenfilename(
+        title="Select Word Document",
+        filetypes=[("Word files", "*.docx")]
+    )
+    return word_file
+
+def load_excel_data(excel_file):
+    """Load the Excel file into a dictionary for word corrections."""
+    df = pd.read_excel(excel_file)
+    corrections_dict = pd.Series(df.iloc[:, 1].values, index=df.iloc[:, 0]).to_dict()
+    return corrections_dict
+
+def grammar_check(word_file, excel_file):
+    try:
+        # Load Word document
+        doc = docx.Document(word_file)
+        
+        # Load Excel correction data
+        corrections_dict = load_excel_data(excel_file)
+        
+        # Initialize a list to store changes
+        changes = []
+        
+        # Process the Word document
+        for para_num, para in enumerate(doc.paragraphs):
+            original_text = para.text  # Save original paragraph text for context
+            for incorrect_word, correction in corrections_dict.items():
+                if incorrect_word in para.text:
+                    # Track the change details
+                    context = para.text  # Context of where the change happened
+                    para.text = para.text.replace(incorrect_word, correction)
+                    changes.append({
+                        "original_word": incorrect_word,
+                        "replaced_word": correction,
+                        "paragraph_number": para_num + 1,
+                        "context": original_text
+                    })
+        
+        # Save the updated Word document
+        updated_word_file = word_file.replace(".docx", "_updated.docx")
+        doc.save(updated_word_file)
+        print(f"Updated Word file saved as: {updated_word_file}")
+        
+        # Save the detailed summary of changes in the same folder as the Word file
+        summary_file = os.path.join(os.path.dirname(word_file), 'grammar_check_summary.txt')
+        with open(summary_file, 'w') as f:
+            if changes:
+                for change in changes:
+                    f.write(f"Original Word: {change['original_word']}\n")
+                    f.write(f"Replaced With: {change['replaced_word']}\n")
+                    f.write(f"Paragraph Number: {change['paragraph_number']}\n")
+                    f.write(f"Context: {change['context']}\n")
+                    f.write("="*50 + "\n")
+            else:
+                f.write("No changes were made.\n")
+        
+        print(f"Summary file saved as: {summary_file}")
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    # Get the Word document file from user
+    word_file = get_word_file()
+    
+    if word_file:
+        print(f"Selected Word file: {word_file}")
+        # Perform grammar check using the default Excel file
+        grammar_check(word_file, DEFAULT_EXCEL_PATH)
+    else:
+        print("No Word document selected.")
