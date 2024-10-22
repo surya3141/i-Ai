@@ -1,0 +1,102 @@
+Sub GrammarCheckAndSummary()
+    Dim doc As Document
+    Dim incorrectWord As Variant ' Changed to Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim findRange As Range
+    Dim summaryFileName As String
+    Dim summaryFile As Object
+    Dim fso As Object
+    Dim excelFilePath As String
+
+    ' Set the active document
+    Set doc = ActiveDocument
+    
+    ' Disable screen updating for performance
+    Application.ScreenUpdating = False
+    
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "C:\path\to\your\correction_file.xlsx" ' Update this path to your Excel file
+
+    ' Open Excel
+    On Error GoTo ErrorHandler ' Start error handling
+    Set excelApp = CreateObject("Excel.Application")
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    Set sheet = workbook.Sheets(1)
+    
+    ' Create a dictionary to hold corrections
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+    
+    ' Find the last row in the Excel sheet
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row ' -4162 is xlUp
+    
+    ' Load corrections from Excel into the dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value)) ' Trim and convert to lowercase
+        replacementWord = Trim(sheet.Cells(row, 2).Value) ' Trim the replacement word
+        
+        ' Check if the key already exists
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+    
+    ' Close the Excel workbook and quit the application
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+    
+    ' Prepare the summary file
+    summaryFileName = Left(doc.FullName, Len(doc.FullName) - 5) & "_summary.txt" ' Add _summary to file name
+    
+    ' Create a new summary text file
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set summaryFile = fso.CreateTextFile(summaryFileName, True)
+    
+    ' Check if the dictionary is populated
+    If correctionsDict.Count = 0 Then
+        MsgBox "No corrections found in the Excel file.", vbExclamation
+        GoTo Cleanup
+    End If
+    
+    ' Write changes to the Word document and the summary file
+    On Error GoTo ChangeError ' Error handling for finding and replacing
+    For Each incorrectWord In correctionsDict.Keys
+        Set findRange = doc.Content
+        With findRange.Find
+            .Text = incorrectWord
+            .Replacement.Text = correctionsDict(incorrectWord)
+            .Execute Replace:=wdReplaceAll
+            
+            ' Log the changes in the summary file if the word was found
+            If findRange.Find.Found Then
+                summaryFile.WriteLine "Original Word: " & incorrectWord
+                summaryFile.WriteLine "Replaced With: " & correctionsDict(incorrectWord)
+                summaryFile.WriteLine "=================================================="
+            End If
+        End With
+    Next incorrectWord
+
+Cleanup:
+    ' Close the summary file
+    summaryFile.Close
+    
+    ' Re-enable screen updating
+    Application.ScreenUpdating = True
+    
+    ' Display completion message
+    MsgBox "Grammar check completed. Summary saved as: " & summaryFileName, vbInformation
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "An error occurred: " & Err.Description, vbCritical
+    If Not excelApp Is Nothing Then excelApp.Quit
+    Exit Sub
+
+ChangeError:
+    MsgBox "An error occurred while replacing words: " & Err.Description, vbCritical
+    Resume Cleanup
+End Sub
