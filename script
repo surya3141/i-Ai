@@ -1,0 +1,68 @@
+import sys
+import os
+import docx
+import pandas as pd
+
+def grammar_check(word_file, excel_file, summary_file):
+    try:
+        # Ensure the Word file exists
+        if not os.path.exists(word_file):
+            print(f"Error: Word file '{word_file}' not found.")
+            return
+        
+        # Ensure the Excel file exists
+        if not os.path.exists(excel_file):
+            print(f"Error: Excel file '{excel_file}' not found.")
+            return
+        
+        # Load the Word document
+        print(f"Opening Word document: {word_file}")
+        doc = docx.Document(word_file)
+        
+        # Load the Excel file containing corrections
+        print(f"Loading Excel file: {excel_file}")
+        corrections_df = pd.read_excel(excel_file)
+        corrections_dict = dict(zip(corrections_df['Word'], corrections_df['Correction']))
+        
+        # Initialize variables to track changes
+        changes = []
+        page_number = 1  # Word docs do not have native pages in docx, but this is for reference
+        line_number = 1
+        
+        # Loop through paragraphs in the Word document
+        print("Checking for grammar mistakes...")
+        for para in doc.paragraphs:
+            original_text = para.text  # Keep track of original paragraph
+            for word, correction in corrections_dict.items():
+                if word in para.text:
+                    para.text = para.text.replace(word, correction)
+                    changes.append(f"Page {page_number}, Line {line_number}: Replaced '{word}' with '{correction}'")
+            line_number += 1  # Increment line number for each paragraph
+
+        # Save the updated Word document
+        doc.save(word_file)
+        print(f"Changes saved to Word document: {word_file}")
+        
+        # Write the summary of changes to a text file
+        print(f"Writing summary of changes to {summary_file}")
+        with open(summary_file, 'w') as f:
+            if changes:
+                for change in changes:
+                    f.write(change + '\n')
+            else:
+                f.write("No changes were made.\n")
+
+        print("Grammar check completed successfully.")
+    
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+
+# Ensure the script is only executed when run directly
+if __name__ == "__main__":
+    if len(sys.argv) != 4:
+        print("Usage: python grammar_check.py <word_file> <excel_file> <summary_file>")
+    else:
+        word_file = sys.argv[1]
+        excel_file = sys.argv[2]
+        summary_file = sys.argv[3]
+        grammar_check(word_file, excel_file, summary_file)
