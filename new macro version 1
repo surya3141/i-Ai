@@ -1,0 +1,119 @@
+Sub GrammarCheckAndSummary_BoldTextOnly()
+    Dim doc As Document
+    Dim incorrectWord As Variant ' Keep this as Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim rng As Range
+    Dim summaryFileName As String
+    Dim summaryFile As Object
+    Dim fso As Object
+    Dim excelFilePath As String
+    Dim boldTextRange As Range
+    Dim newDoc As Document
+    Dim currentPage As Integer
+
+    ' Set the active document
+    Set doc = ActiveDocument
+    
+    ' Disable screen updating for performance
+    Application.ScreenUpdating = False
+    
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "C:\path\to\your\correction_file.xlsx" ' Update this path to your Excel file
+
+    ' Initialize the dictionary
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+
+    ' Open Excel
+    On Error GoTo ErrorHandler ' Start error handling
+    Set excelApp = CreateObject("Excel.Application")
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    Set sheet = workbook.Sheets(1)
+    
+    ' Find the last row in the Excel sheet
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row ' -4162 is xlUp
+    
+    ' Load corrections from Excel into the dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value)) ' Trim and convert to lowercase
+        replacementWord = Trim(sheet.Cells(row, 2).Value) ' Trim the replacement word
+        
+        ' Check if the key already exists
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+    
+    ' Close the Excel workbook and quit the application
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+    
+    ' Create a new document for the corrections
+    Set newDoc = Documents.Add
+    newDoc.Content.FormattedText = doc.Content.FormattedText
+    
+    ' Prepare the summary file
+    summaryFileName = Left(doc.FullName, Len(doc.FullName) - 5) & "_summary.txt" ' Add _summary to file name
+    
+    ' Create a new summary text file
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set summaryFile = fso.CreateTextFile(summaryFileName, True)
+    
+    ' Check if the dictionary is populated
+    If correctionsDict.Count = 0 Then
+        MsgBox "No corrections found in the Excel file.", vbExclamation
+        GoTo Cleanup
+    End If
+
+    ' Loop through the bold text in the document (excluding page 1)
+    For Each rng In newDoc.StoryRanges(wdMainTextStory).Words
+        If rng.Bold = True Then
+            ' Check the current page of the bold text
+            currentPage = newDoc.ComputeStatistics(wdStatisticPages, rng)
+            
+            If currentPage > 1 Then ' Exclude bold text from page 1
+                Dim foundIncorrectWord As String
+                foundIncorrectWord = LCase(Trim(rng.Text)) ' Convert to lowercase and trim
+                
+                If correctionsDict.Exists(foundIncorrectWord) Then
+                    ' Get the replacement word
+                    replacementWord = correctionsDict(foundIncorrectWord)
+                    
+                    ' Insert the replacement in parentheses next to the original word
+                    rng.InsertAfter " (" & replacementWord & ")"
+                    
+                    ' Log the changes in the summary file
+                    summaryFile.WriteLine "Original Word: " & foundIncorrectWord
+                    summaryFile.WriteLine "Correction: " & replacementWord
+                    summaryFile.WriteLine "=================================================="
+                End If
+            End If
+        End If
+    Next rng
+
+Cleanup:
+    ' Close the summary file
+    summaryFile.Close
+    
+    ' Re-enable screen updating
+    Application.ScreenUpdating = True
+    
+    ' Save the new document with corrections
+    Dim newDocName As String
+    newDocName = Left(doc.FullName, Len(doc.FullName) - 5) & "_Corrected.docx" ' Add "_Corrected" to the original file name
+    newDoc.SaveAs2 newDocName
+    
+    ' Display completion message
+    MsgBox "Grammar check completed. Summary saved as: " & summaryFileName & vbCrLf & "Corrected document saved as: " & newDocName, vbInformation
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "An error occurred: " & Err.Description, vbCritical
+    If Not excelApp Is Nothing Then excelApp.Quit
+    Exit Sub
+
+End Sub
