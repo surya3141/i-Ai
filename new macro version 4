@@ -1,0 +1,118 @@
+Sub GrammarCheckAndSummary_InPlaceEditOptimized()
+    Dim doc As Document
+    Dim incorrectWord As Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim wordRange As Range
+    Dim para As Paragraph
+    Dim startTime As Single
+    Dim wordText As String
+    Dim excelFilePath As String
+    Dim summaryFile As Object
+    Dim fso As Object
+    Dim processedWords As Collection
+    Dim currentPage As Integer
+    Dim updateCounter As Long
+    
+    ' Start time for performance measurement
+    startTime = Timer
+
+    ' Set the active document
+    Set doc = ActiveDocument
+
+    ' Disable screen updating, recalculation, and auto-save features
+    Application.ScreenUpdating = False
+    Application.DisplayStatusBar = False ' Reduces lag
+    Options.AutoFormatAsYouTypeReplaceHyperlinks = False
+    doc.Saved = True
+    
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "C:\path\to\your\correction_file.xlsx" ' Update this path to your Excel file
+    
+    ' Initialize dictionary and collection
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+    Set processedWords = New Collection
+
+    ' Open Excel
+    On Error GoTo ErrorHandler
+    Set excelApp = CreateObject("Excel.Application")
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    Set sheet = workbook.Sheets(1)
+    
+    ' Find the last row in the Excel sheet
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row
+    
+    ' Load corrections into dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value))
+        replacementWord = Trim(sheet.Cells(row, 2).Value)
+        
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+    
+    ' Close Excel and release resources
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+    
+    ' Process the Word document paragraphs
+    updateCounter = 0
+    For Each para In doc.Paragraphs
+        Set wordRange = para.Range
+        currentPage = wordRange.Information(wdActiveEndPageNumber)
+        
+        If currentPage > 1 Then ' Skip page 1
+            For Each wordRange In para.Range.Words
+                If wordRange.Bold = True Then
+                    wordText = Trim(LCase(wordRange.Text))
+                    
+                    If correctionsDict.Exists(wordText) Then
+                        replacementWord = correctionsDict(wordText)
+                        If Not IsInCollection(processedWords, wordText) Then
+                            wordRange.InsertAfter " (" & replacementWord & ")"
+                            processedWords.Add wordText
+                        End If
+                    End If
+                End If
+            Next wordRange
+        End If
+        
+        ' Refresh UI every 50 paragraphs to avoid freezing
+        updateCounter = updateCounter + 1
+        If updateCounter Mod 50 = 0 Then
+            DoEvents
+        End If
+    Next para
+
+Cleanup:
+    ' Re-enable screen updating and other features
+    Application.ScreenUpdating = True
+    Application.DisplayStatusBar = True
+    Options.AutoFormatAsYouTypeReplaceHyperlinks = True
+    
+    ' Measure and display total runtime
+    MsgBox "Grammar check completed in " & Format(Timer - startTime, "0.00") & " seconds.", vbInformation
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "An error occurred: " & Err.Description, vbCritical
+    If Not excelApp Is Nothing Then excelApp.Quit
+    Exit Sub
+End Sub
+
+Function IsInCollection(col As Collection, val As Variant) As Boolean
+    Dim item As Variant
+    On Error Resume Next
+    For Each item In col
+        If item = val Then
+            IsInCollection = True
+            Exit Function
+        End If
+    Next item
+    IsInCollection = False
+End Function
