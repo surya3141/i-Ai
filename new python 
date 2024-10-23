@@ -1,0 +1,73 @@
+import docx
+from openpyxl import load_workbook
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
+
+# Load Excel corrections
+def load_corrections_from_excel(excel_file):
+    corrections = {}
+    wb = load_workbook(excel_file)
+    ws = wb.active
+    
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        incorrect_word = row[0].strip().lower()  # Trim and convert to lowercase
+        replacement_word = row[1].strip()
+        if incorrect_word not in corrections:
+            corrections[incorrect_word] = replacement_word
+    
+    return corrections
+
+# Check if a run is bold
+def is_bold(run):
+    return run.bold
+
+# Process the document to make corrections only in bold text (excluding the first page)
+def process_document(doc_path, corrections):
+    doc = docx.Document(doc_path)
+    
+    # Load the document and process all paragraphs
+    in_first_page = True
+    for para in doc.paragraphs:
+        for run in para.runs:
+            if is_bold(run) and not in_first_page:
+                # Process the text in this run
+                run_text = run.text.strip().lower()
+                if run_text in corrections:
+                    # Add the corrected word in brackets after the original word
+                    replacement_word = corrections[run_text]
+                    run.text += f" ({replacement_word})"
+                    
+        # Assuming page break between paragraphs indicates a new page
+        # If you use section breaks, handle accordingly
+        if 'PAGE_BREAK' in para.text:
+            in_first_page = False  # Move out of the first page after encountering page break
+    
+    # Save the document in-place
+    doc.save(doc_path)
+
+# Main function
+def main():
+    # Create file dialog to upload Word document
+    Tk().withdraw()  # Hide the root window
+    print("Please select the Word document:")
+    word_file_path = askopenfilename(filetypes=[("Word files", "*.docx")])
+    
+    if not word_file_path:
+        print("No Word document selected. Exiting...")
+        return
+    
+    print(f"Selected Word document: {word_file_path}")
+    
+    # Specify the Excel file path containing corrections
+    excel_file_path = "C:/path/to/your/correction_file.xlsx"  # Update this path to your Excel file
+    
+    # Load the corrections from Excel
+    corrections_dict = load_corrections_from_excel(excel_file_path)
+    
+    # Process the Word document to apply corrections
+    process_document(word_file_path, corrections_dict)
+    
+    print(f"Document '{word_file_path}' processed successfully.")
+
+if __name__ == "__main__":
+    main()
