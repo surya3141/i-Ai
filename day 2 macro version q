@@ -1,0 +1,86 @@
+Sub GrammarCheckAndCorrectBoldText()
+    Dim doc As Document
+    Dim incorrectWord As String, replacementWord As String
+    Dim correctionsDict As Object
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim findRange As Range
+    Dim para As Paragraph
+    Dim excelFilePath As String
+    Dim textInRange As String
+    Dim targetText As Range
+
+    ' Set the active document
+    Set doc = ActiveDocument
+
+    ' Disable screen updating for performance
+    Application.ScreenUpdating = False
+
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "C:\path\to\your\correction_file.xlsx" ' Update this path to your Excel file
+
+    ' Initialize the dictionary
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+
+    ' Open Excel
+    On Error GoTo ErrorHandler ' Start error handling
+    Set excelApp = CreateObject("Excel.Application")
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    Set sheet = workbook.Sheets(1)
+    
+    ' Find the last row in the Excel sheet
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row ' -4162 is xlUp
+    
+    ' Load corrections from Excel into the dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value)) ' Trim and convert to lowercase
+        replacementWord = Trim(sheet.Cells(row, 2).Value) ' Trim the replacement word
+        
+        ' Check if the key already exists
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+    
+    ' Close the Excel workbook and quit the application
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+    
+    ' Start checking bold text from page 2 onward
+    For Each para In doc.Paragraphs
+        Set targetText = para.Range
+
+        ' Ensure this isn't the first page and check if text is bold
+        If targetText.Information(wdActiveEndPageNumber) > 1 Then
+            If targetText.Font.Bold = True Then
+                ' Loop through each word in the paragraph
+                For Each findRange In targetText.Words
+                    textInRange = Trim(LCase(findRange.Text)) ' Get the word, convert to lowercase
+                    
+                    ' Check for broken words (split across lines)
+                    textInRange = Replace(textInRange, Chr(13), "") ' Remove paragraph breaks
+                    textInRange = Replace(textInRange, Chr(7), "")  ' Remove manual line breaks
+                    
+                    ' Check if the word exists in the dictionary and replace it
+                    If correctionsDict.Exists(textInRange) Then
+                        findRange.Text = textInRange & " (" & correctionsDict(textInRange) & ")"
+                    End If
+                Next findRange
+            End If
+        End If
+    Next para
+    
+    ' Re-enable screen updating
+    Application.ScreenUpdating = True
+    
+    ' Display completion message
+    MsgBox "Grammar check completed. Corrections made to bold text starting from page 2.", vbInformation
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "An error occurred: " & Err.Description, vbCritical
+    If Not excelApp Is Nothing Then excelApp.Quit
+    Exit Sub
+End Sub
