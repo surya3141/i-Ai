@@ -1,0 +1,101 @@
+Sub OptimizedGrammarCheckAndSummary()
+    Dim doc As Document
+    Dim incorrectWord As Variant ' Keep this as Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim findRange As Range
+    Dim rng As Range
+    Dim para As Paragraph
+    Dim wordCount As Long
+    Dim processedWords As Long
+    Dim startPage As Long
+    Dim summaryFile As Object
+    Dim fso As Object
+    Dim excelFilePath As String
+    Dim summaryFileName As String
+    Dim paraCounter As Long
+    
+    ' Set the active document
+    Set doc = ActiveDocument
+
+    ' Disable screen updating and display status bar message
+    Application.ScreenUpdating = False
+    Application.StatusBar = "Processing document, please wait..."
+
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "C:\path\to\your\correction_file.xlsx" ' Update this path to your Excel file
+
+    ' Initialize the dictionary
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+
+    ' Open Excel
+    On Error GoTo ErrorHandler ' Start error handling
+    Set excelApp = CreateObject("Excel.Application")
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    Set sheet = workbook.Sheets(1)
+    
+    ' Find the last row in the Excel sheet
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row ' -4162 is xlUp
+    
+    ' Load corrections from Excel into the dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value)) ' Trim and convert to lowercase
+        replacementWord = Trim(sheet.Cells(row, 2).Value) ' Trim the replacement word
+        
+        ' Check if the key already exists
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+    
+    ' Close the Excel workbook and quit the application
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+
+    ' Limit processing to text starting after page 1
+    startPage = 2
+
+    ' Prepare to go through paragraphs starting from page 2
+    For paraCounter = 1 To doc.Paragraphs.Count
+        Set para = doc.Paragraphs(paraCounter)
+
+        ' Skip paragraphs before Page 2
+        If para.Range.Information(wdActiveEndPageNumber) >= startPage Then
+            ' Only check for bold text in this paragraph
+            Set rng = para.Range
+            If rng.Font.Bold = True Then
+                For Each incorrectWord In correctionsDict.Keys
+                    ' Search for incorrect words in bold paragraphs
+                    With rng.Find
+                        .Text = incorrectWord
+                        .Replacement.Text = incorrectWord & " (" & correctionsDict(incorrectWord) & ")"
+                        .Execute Replace:=wdReplaceAll
+                    End With
+                Next incorrectWord
+            End If
+        End If
+
+        ' Provide a status update every 100 paragraphs processed
+        If paraCounter Mod 100 = 0 Then
+            Application.StatusBar = "Processing paragraph " & paraCounter & " of " & doc.Paragraphs.Count
+        End If
+    Next paraCounter
+
+Cleanup:
+    ' Re-enable screen updating and clear the status bar
+    Application.ScreenUpdating = True
+    Application.StatusBar = False
+
+    ' Display completion message
+    MsgBox "Grammar check completed.", vbInformation
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "An error occurred: " & Err.Description, vbCritical
+    If Not excelApp Is Nothing Then excelApp.Quit
+    Exit Sub
+End Sub
