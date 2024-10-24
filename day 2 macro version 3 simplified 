@@ -1,0 +1,79 @@
+Sub GrammarCheckAndReplace()
+    Dim doc As Document
+    Dim incorrectWord As Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim findRange As Range
+    Dim fso As Object
+    Dim excelFilePath As String
+
+    ' Set the active document
+    Set doc = ActiveDocument
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "C:\path\to\your\correction_file.xlsx" ' Update this path to your Excel file
+
+    ' Initialize the dictionary
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+
+    ' Open Excel
+    On Error GoTo ErrorHandler
+    Set excelApp = CreateObject("Excel.Application")
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    Set sheet = workbook.Sheets(1)
+    
+    ' Find the last row in the Excel sheet
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row
+    
+    ' Load corrections from Excel into the dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value))
+        replacementWord = Trim(sheet.Cells(row, 2).Value)
+        
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+    
+    ' Close the Excel workbook and quit the application
+    workbook.Close False
+    excelApp.Quit
+    
+    ' Process document, avoiding Page 1
+    Dim i As Long
+    Dim foundWords As Collection
+    Set foundWords = New Collection
+    
+    ' Iterate over the dictionary for replacements
+    On Error GoTo ChangeError
+    For Each incorrectWord In correctionsDict.Keys
+        Set findRange = doc.Content
+        findRange.Find.Execute FindText:=incorrectWord, Replace:=wdReplaceNone
+        
+        If findRange.Find.Found Then
+            foundWords.Add incorrectWord
+            ' Use a prompt to confirm replacement or simply replace in batch
+            findRange.Text = findRange.Text & " (" & correctionsDict(incorrectWord) & ")"
+        End If
+    Next incorrectWord
+
+Cleanup:
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    MsgBox "Grammar check completed.", vbInformation
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "An error occurred: " & Err.Description
+    If Not excelApp Is Nothing Then excelApp.Quit
+    Exit Sub
+
+ChangeError:
+    MsgBox "An error occurred while replacing words: " & Err.Description
+    Resume Cleanup
+End Sub
