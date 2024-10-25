@@ -1,0 +1,134 @@
+Sub CheckSTEWordsStructuredTechnicalEnglish()
+    Dim doc As Document
+    Dim incorrectWord As Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim wordRange As Range
+    Dim summaryFile As Object
+    Dim fso As Object
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim summaryFileName As String, baseFileName As String
+    Dim excelFilePath As String
+    Dim versionNumber As Integer
+    Dim selectedRange As Range
+    Dim updateCount As Long
+
+    ' Ensure there is a selection
+    If Selection.Type = wdNoSelection Then
+        MsgBox "Please select the text to be checked.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Set the active document
+    Set doc = ActiveDocument
+
+    ' Set the selected range to only the selected content
+    Set selectedRange = Selection.Range
+
+    ' Disable screen updating and status bar for performance
+    Application.ScreenUpdating = False
+    Application.StatusBar = "Starting grammar check..."
+
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "C:\path\to\your\correction_file.xlsx" ' Update this path
+
+    ' Initialize the dictionary
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+
+    ' Open Excel
+    On Error Resume Next ' Error handling for Excel issues
+    Set excelApp = CreateObject("Excel.Application")
+    If excelApp Is Nothing Then
+        MsgBox "Excel could not be started. Make sure Excel is installed.", vbCritical
+        Exit Sub
+    End If
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    On Error GoTo 0 ' Reset error handling
+
+    If workbook Is Nothing Then
+        MsgBox "The specified Excel file could not be opened. Please check the file path.", vbCritical
+        excelApp.Quit
+        Set excelApp = Nothing
+        Exit Sub
+    End If
+
+    Set sheet = workbook.Sheets(1)
+
+    ' Find the last row in the Excel sheet
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row ' -4162 is xlUp
+
+    ' Load corrections from Excel into the dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value)) ' Trim and convert to lowercase
+        replacementWord = Trim(sheet.Cells(row, 2).Value) ' Trim the replacement word
+        
+        ' Check if the key already exists
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+
+    ' Close Excel
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+
+    ' Prepare the summary file name with versioning
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    baseFileName = Left(doc.FullName, Len(doc.FullName) - 5) & "_summary"
+    versionNumber = 1
+
+    ' Check for existing file versions and increment the version number
+    Do While fso.FileExists(baseFileName & "_v" & versionNumber & ".txt")
+        versionNumber = versionNumber + 1
+    Loop
+
+    summaryFileName = baseFileName & "_v" & versionNumber & ".txt"
+    Set summaryFile = fso.CreateTextFile(summaryFileName, True)
+
+    ' Initialize counters
+    updateCount = 0
+
+    ' Loop through each word in the selected range
+    For Each wordRange In selectedRange.Words
+        ' Check if the word is bold
+        If wordRange.Font.Bold = True Then
+            ' Preserve leading and trailing spaces while getting the core word
+            Dim coreWord As String
+            Dim leadingSpace As String, trailingSpace As String
+            
+            ' Determine if there's leading or trailing space
+            If Left(wordRange.Text, 1) = " " Then leadingSpace = " " Else leadingSpace = ""
+            If Right(wordRange.Text, 1) = " " Then trailingSpace = " " Else trailingSpace = ""
+
+            ' Get the core word without spaces for comparison
+            coreWord = Trim(LCase(wordRange.Text))
+
+            ' Check if the core word exists in the corrections dictionary
+            If correctionsDict.Exists(coreWord) Then
+                ' Append suggestion after the word, keeping spaces
+                Dim originalText As String
+                originalText = wordRange.Text ' Save original text before modification
+                wordRange.Text = leadingSpace & originalText & " (" & correctionsDict(coreWord) & ")" & trailingSpace
+                
+                ' Log the change in the summary file
+                summaryFile.WriteLine "Original Word: " & coreWord
+                summaryFile.WriteLine "Suggestion Added: " & correctionsDict(coreWord)
+                summaryFile.WriteLine "=================================================="
+            End If
+        End If
+        ' Allow Word to process other events every 10 words
+        updateCount = updateCount + 1
+        If updateCount Mod 10 = 0 Then DoEvents
+    Next wordRange
+
+    ' Cleanup
+    summaryFile.Close
+    Application.ScreenUpdating = True
+    Application.StatusBar = "Grammar check completed."
+
+    ' Display completion message
+    MsgBox "Grammar check completed. Summary saved as: " & summaryFileName, vbInformation
+End Sub
