@@ -1,0 +1,139 @@
+Sub CheckSTEWordCheck()
+
+    Dim doc As Document
+    Dim incorrectWord As Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim wordRange As Range
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim excelFilePath As String
+    Dim selectedRange As Range
+    Dim updateCount As Long
+    Dim globalLogFilePath As String
+    Dim localLogFilePath As String
+    Dim logFile As Object
+    Dim localVersion As Long
+    Dim correctionDetails As String
+
+    ' Ensure there is a selection
+    If Selection.Type = wdNoSelection Then
+        MsgBox "Please select the text to be checked.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Set the active document and selected range
+    Set doc = ActiveDocument
+    Set selectedRange = Selection.Range
+
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "\\gbwyndna-a003a.gbwynnas-001a-g.rolls-royce.local\PortfolioENG_NLR\EFS\03_TV_Support\WIP\Macro for Word STE\grammatical_corrections.xlsx"
+
+    ' Initialize the dictionary
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+
+    ' Open Excel
+    On Error Resume Next
+    Set excelApp = CreateObject("Excel.Application")
+    If excelApp Is Nothing Then
+        MsgBox "Excel could not be started. Make sure Excel is installed.", vbCritical
+        Exit Sub
+    End If
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    On Error GoTo 0
+
+    If workbook Is Nothing Then
+        MsgBox "The specified Excel file could not be opened. Please check the file path.", vbCritical
+        excelApp.Quit
+        Set excelApp = Nothing
+        Exit Sub
+    End If
+
+    Set sheet = workbook.Sheets(1)
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row ' -4162 is xlUp
+
+    ' Load corrections into the dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value))
+        replacementWord = Trim(sheet.Cells(row, 2).Value)
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+
+    ' Close Excel
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+
+    ' Initialize counters and log file paths
+    updateCount = 0
+    globalLogFilePath = "\\path\to\global_log.txt" ' Update this path for the global log
+    localLogFilePath = Left(doc.FullName, InStrRev(doc.FullName, ".")) & "v" & 1 & ".txt"
+
+    ' Check for existing local log version
+    localVersion = 1
+    Do While Dir(localLogFilePath) <> ""
+        localVersion = localVersion + 1
+        localLogFilePath = Left(doc.FullName, InStrRev(doc.FullName, ".")) & "v" & localVersion & ".txt"
+    Loop
+
+    ' Main loop for grammar check
+    For Each wordRange In selectedRange.Words
+        ' Trim the text of the word
+        Dim coreWord As String
+        coreWord = Trim(LCase(wordRange.Text))
+
+        ' Process only words that have not been corrected yet
+        If Not (wordRange.Font.Shading.BackgroundPatternColor = wdColorGreen Or wordRange.Font.Shading.BackgroundPatternColor = wdColorYellow) Then
+            ' Check if the word is in the corrections dictionary
+            If correctionsDict.Exists(coreWord) Then
+                Dim originalText As String
+                originalText = Trim(wordRange.Text)
+
+                ' Replace text with the corrected word
+                wordRange.Text = correctionsDict(coreWord)
+
+                ' Apply formatting: corrected word in green and the original in yellow
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorGreen ' Correction highlighted in green
+                wordRange.MoveStart wdCharacter, -Len(correctionsDict(coreWord)) ' Move to original word
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorYellow ' Original highlighted in yellow
+
+                ' Log the correction with detailed information
+                correctionDetails = "Corrected: '" & originalText & "' to '" & correctionsDict(coreWord) & "'"
+                LogCorrection globalLogFilePath, correctionDetails
+                LogCorrection localLogFilePath, correctionDetails
+
+                ' Increment counter and allow Word to process events
+                updateCount = updateCount + 1
+                If updateCount Mod 10 = 0 Then DoEvents
+            End If
+        End If
+    Next wordRange
+
+    ' Final cleanup
+    Application.ScreenUpdating = True
+    Application.StatusBar = "Grammar check completed."
+
+    ' Display completion message
+    MsgBox "Grammar check completed.", vbInformation
+
+End Sub
+
+Sub LogCorrection(logFilePath As String, correctionDetails As String)
+    Dim logFile As Object
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Create or open the log file
+    If fso.FileExists(logFilePath) Then
+        Set logFile = fso.OpenTextFile(logFilePath, 8) ' Append mode
+    Else
+        Set logFile = fso.CreateTextFile(logFilePath, True) ' Create new file
+    End If
+
+    ' Write correction details to the log file
+    logFile.WriteLine Now & ": " & correctionDetails
+    logFile.Close
+End Sub
