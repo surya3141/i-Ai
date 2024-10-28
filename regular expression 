@@ -1,0 +1,1 @@
+folder_pattern = re.compile(r'8_(Documents_Corrections|TV-Documents_Corrections)', re.IGNORECASE)
