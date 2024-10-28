@@ -1,5 +1,5 @@
-Sub CheckSTEWordCheck()
-    ' Declare variables
+Sub CheckSTEWordCheck(userEmail As String)
+
     Dim doc As Document
     Dim incorrectWord As Variant
     Dim replacementWord As String
@@ -12,11 +12,9 @@ Sub CheckSTEWordCheck()
     Dim updateCount As Long
     Dim logFilePath As String
     Dim summaryFilePath As String
-    Dim summaryFileName As String
-    Dim userEmail As String
-    Dim fileName As String
     Dim userName As String
-    Dim userNameField As Object
+    Dim fileName As String
+    Dim summaryVersion As Long
 
     ' Ensure there is a selection
     If Selection.Type = wdNoSelection Then
@@ -29,7 +27,7 @@ Sub CheckSTEWordCheck()
     Set selectedRange = Selection.Range
 
     ' Specify the Excel file path containing corrections
-    excelFilePath = "\\gbwyndna-a003a.gbwynnas-001a-g.rolls-royce.local\PortfolioENG_NLR\EFS\03_TV_Support\WIP\Macro for Word STE\grammatical_corrections.xlsx"
+    excelFilePath = "C:\YourDirectory\grammatical_corrections.xlsx"
 
     ' Initialize the dictionary
     Set correctionsDict = CreateObject("Scripting.Dictionary")
@@ -37,13 +35,13 @@ Sub CheckSTEWordCheck()
     ' Open Excel
     On Error Resume Next
     Set excelApp = CreateObject("Excel.Application")
+
     If excelApp Is Nothing Then
         MsgBox "Excel could not be started. Make sure Excel is installed.", vbCritical
         Exit Sub
     End If
-    excelApp.Visible = False
 
-    ' Open the workbook
+    excelApp.Visible = False
     Set workbook = excelApp.Workbooks.Open(excelFilePath)
     On Error GoTo 0
 
@@ -73,13 +71,12 @@ Sub CheckSTEWordCheck()
 
     ' Initialize counters
     updateCount = 0
+    userName = Environ("USERNAME") ' Get the Windows username
+    fileName = doc.Name ' Get the document name
 
-    ' Get user email (update this according to your environment)
-    userEmail = "user@example.com" ' Replace with code to get the actual user's email
-    userName = Environ("USERNAME") ' Get the username from the environment
-
-    ' Get the document file name
-    fileName = doc.Name
+    ' Initialize log file path
+    logFilePath = "C:\YourDirectory\global_log.txt"
+    summaryFilePath = doc.Path & "\summary_v1.txt" ' Adjust path for summary file
 
     ' Main loop for grammar check
     For Each wordRange In selectedRange.Words
@@ -88,11 +85,11 @@ Sub CheckSTEWordCheck()
             Dim coreWord As String
             coreWord = Trim(LCase(wordRange.Text))
 
-            ' Check if the word is in corrections dictionary
+            ' Check if word is in corrections dictionary and hasn't already been corrected
             If correctionsDict.Exists(coreWord) Then
                 Dim originalText As String
                 originalText = Trim(wordRange.Text)
-                
+
                 ' Replace text and apply color formatting
                 wordRange.Text = originalText & " (" & correctionsDict(coreWord) & ")"
 
@@ -101,20 +98,16 @@ Sub CheckSTEWordCheck()
                     wordRange.Text = wordRange.Text & " "
                 End If
 
-                ' Remove underline
-                wordRange.Font.Underline = wdUnderlineNone
-
                 ' Apply color: original word in yellow, correction in green
-                wordRange.Font.Shading.BackgroundPatternColor = wdColorYellow ' Original word highlighted in yellow
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorYellow ' Original word in yellow
                 wordRange.MoveEnd wdCharacter, -Len(correctionsDict(coreWord)) - 3 ' Moves to the correction
-                wordRange.Font.Shading.BackgroundPatternColor = wdColorBrightGreen ' Highlight the appended correction text in green
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorBrightGreen ' Suggested word in green
+
+                ' Log the correction
+                LogCorrection userName, fileName, originalText, correctionsDict(coreWord), userEmail
 
                 ' Increment counter and allow Word to process events
                 updateCount = updateCount + 1
-
-                ' Log the correction in the global log file
-                LogCorrection userName, fileName, originalText, correctionsDict(coreWord)
-
                 If updateCount Mod 10 = 0 Then DoEvents
             End If
         End If
@@ -124,22 +117,38 @@ Sub CheckSTEWordCheck()
     Application.ScreenUpdating = True
     Application.StatusBar = "Grammar check completed."
 
-    ' Create or update document-specific summary file
-    summaryFileName = Left(doc.Name, InStrRev(doc.Name, ".")) & "summary_v" & Format(Now, "yyyymmdd_hhnn") & ".txt"
-    summaryFilePath = doc.Path & "\" & summaryFileName
-    Open summaryFilePath For Append As #1
-    Print #1, "Document: " & fileName & " | Date: " & Now & " | User: " & userName
-    Close #1
+    ' Create/Update Summary File
+    UpdateSummaryFile summaryFilePath, userName, fileName
 
     ' Display completion message
     MsgBox "STE tool has been run on this document.", vbInformation
+
 End Sub
 
-Sub LogCorrection(userName As String, fileName As String, originalWord As String, suggestedWord As String)
+Sub LogCorrection(userName As String, fileName As String, originalWord As String, suggestedWord As String, userEmail As String)
     Dim logFilePath As String
-    logFilePath = "\\path\to\your\log\directory\logfile.txt" ' Update this to your desired log file path
-    
+    logFilePath = "C:\YourDirectory\global_log.txt" ' Update this to your desired local log file path
+
     Open logFilePath For Append As #1
-    Print #1, "Date: " & Now & " | User: " & userName & " | Document: " & fileName & " | Corrected Word: " & originalWord & " | Suggested Word: " & suggestedWord
+    Print #1, "Date: " & Now & " | User: " & userName & " | Email: " & userEmail & " | Document: " & fileName & " | Corrected Word: " & originalWord & " | Suggested Word: " & suggestedWord
+    Close #1
+End Sub
+
+Sub UpdateSummaryFile(summaryFilePath As String, userName As String, fileName As String)
+    Dim summaryVersion As Long
+    Dim summaryFile As String
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    ' Determine the next summary version number
+    summaryVersion = 1
+    Do While fso.FileExists(summaryFilePath)
+        summaryVersion = summaryVersion + 1
+        summaryFilePath = Left(summaryFilePath, InStrRev(summaryFilePath, "_") - 1) & "_v" & summaryVersion & ".txt"
+    Loop
+
+    ' Create or append to the summary file
+    Open summaryFilePath For Append As #1
+    Print #1, "Date: " & Now & " | User: " & userName & " | Document: " & fileName
     Close #1
 End Sub
