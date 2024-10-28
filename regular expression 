@@ -1,48 +1,55 @@
 import os
 import shutil
 
-# List of folder names (each folder name will be suffixed with "Iss01 Ver01")
-folder_names = ["ExampleFolder1", "ExampleFolder2"]  # Add your actual folder names here
+# List of folder names (suffix will be "_Iss01_Ver01" for each folder name)
+folder_names = []  # Add your actual folder names here, e.g., ["Folder1", "Folder2"]
 
 # Specify the network base path
-network_base_path = r'\\gbwyndna-a003a.gbwynnas-001a-g.rolls-royce.local\Portfolio ENG_NLR\EFS\03_TV_Support WIP'
+network_base_path = r'\\gbwyndna-a003a.gbwynnas-001a-g.rolls-royce.local\PortfolioENG_NLR\EFS\03_TV_Support\WIP'
 
 # Specify the local folder where you want to copy the files
 local_base_folder = r'C:\Users\u8062412\Pycharm Projects\TV documents comments Extraction Correction files WK 43'
 
+# List of possible subfolder names
+subfolder_names = [
+    '8_Document-Corrections',
+    '8_TV-Document-Corrections',
+    '8_Documents_Corrections',
+    '8_Document_Corrections'
+]
+
 # Step 1: Iterate through each folder and copy files from the specific subfolder
 try:
     for folder_name in folder_names:
-        # Construct paths for both subfolders to check
-        network_folder_path_1 = os.path.join(network_base_path, f'{folder_name}_Iss01_Ver01', '8_Document-Corrections')
-        network_folder_path_2 = os.path.join(network_base_path, f'{folder_name}_Iss01_Ver01', '8_TV-Document-Corrections')
+        # Construct the network folder path with suffix "_Iss01_Ver01" and check each possible subfolder name
+        network_folder_path = None
+        for subfolder in subfolder_names:
+            current_path = os.path.join(network_base_path, f'{folder_name}_Iss01_Ver01', subfolder)
+            if os.path.exists(current_path):
+                network_folder_path = current_path
+                break
         
-        # Check if either network folder exists
-        if os.path.exists(network_folder_path_1):
-            network_folder_path = network_folder_path_1
-        elif os.path.exists(network_folder_path_2):
-            network_folder_path = network_folder_path_2
+        # Check if a valid network folder was found
+        if network_folder_path:
+            # Create a unique local subfolder for each input folder
+            local_folder = os.path.join(local_base_folder, f'{folder_name}_Iss01_Ver01')
+            
+            # Create the local folder if it doesn't exist
+            if not os.path.exists(local_folder):
+                os.makedirs(local_folder)
+
+            # Step 2: Copy each file from the network folder to the local folder
+            for file_name in os.listdir(network_folder_path):
+                # Only copy files (skip directories)
+                network_file_path = os.path.join(network_folder_path, file_name)
+                if os.path.isfile(network_file_path):
+                    local_file_path = os.path.join(local_folder, file_name)
+                    shutil.copy2(network_file_path, local_file_path)
+                    print(f"Copied '{file_name}' to '{local_file_path}'")
+                else:
+                    print(f"Skipped directory: {file_name}")
         else:
-            print(f"Neither folder exists for: {folder_name}")
-            continue  # Skip to the next folder if neither path exists
-
-        # Local folder to copy the files (create a unique local subfolder for each input folder)
-        local_folder = os.path.join(local_base_folder, f'{folder_name}_Iss01_Ver01')
-
-        # Create the local folder if it doesn't exist
-        if not os.path.exists(local_folder):
-            os.makedirs(local_folder)
-
-        # Step 2: Copy each file from the network folder to the local folder
-        for file_name in os.listdir(network_folder_path):
-            # Only copy files (skip directories)
-            network_file_path = os.path.join(network_folder_path, file_name)
-            if os.path.isfile(network_file_path):
-                local_file_path = os.path.join(local_folder, file_name)
-                shutil.copy2(network_file_path, local_file_path)
-                print(f"Copied '{file_name}' to '{local_file_path}'")
-            else:
-                print(f"Skipped directory: {file_name}")
+            print(f"No matching network folder found for: {folder_name}")
 
 except Exception as e:
     print(f"Error occurred: {e}")
