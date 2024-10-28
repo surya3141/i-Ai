@@ -15,6 +15,8 @@ Sub CheckSTEWordCheck()
     Dim summaryFileName As String
     Dim userEmail As String
     Dim fileName As String
+    Dim userName As String
+    Dim userNameField As Object
 
     ' Ensure there is a selection
     If Selection.Type = wdNoSelection Then
@@ -74,6 +76,7 @@ Sub CheckSTEWordCheck()
 
     ' Get user email (update this according to your environment)
     userEmail = "user@example.com" ' Replace with code to get the actual user's email
+    userName = Environ("USERNAME") ' Get the username from the environment
 
     ' Get the document file name
     fileName = doc.Name
@@ -89,7 +92,7 @@ Sub CheckSTEWordCheck()
             If correctionsDict.Exists(coreWord) Then
                 Dim originalText As String
                 originalText = Trim(wordRange.Text)
-
+                
                 ' Replace text and apply color formatting
                 wordRange.Text = originalText & " (" & correctionsDict(coreWord) & ")"
 
@@ -109,6 +112,9 @@ Sub CheckSTEWordCheck()
                 ' Increment counter and allow Word to process events
                 updateCount = updateCount + 1
 
+                ' Log the correction in the global log file
+                LogCorrection userName, fileName, originalText, correctionsDict(coreWord)
+
                 If updateCount Mod 10 = 0 Then DoEvents
             End If
         End If
@@ -118,19 +124,22 @@ Sub CheckSTEWordCheck()
     Application.ScreenUpdating = True
     Application.StatusBar = "Grammar check completed."
 
-    ' Log the macro run
-    logFilePath = "\\path\to\your\log\directory\logfile.txt" ' Update this to your desired log file path
-    Open logFilePath For Append As #1
-    Print #1, "Macro run on Document: " & fileName & " | Date: " & Now & " | User: " & userEmail
-    Close #1
-
     ' Create or update document-specific summary file
     summaryFileName = Left(doc.Name, InStrRev(doc.Name, ".")) & "summary_v" & Format(Now, "yyyymmdd_hhnn") & ".txt"
     summaryFilePath = doc.Path & "\" & summaryFileName
     Open summaryFilePath For Append As #1
-    Print #1, "Document: " & fileName & " | Date: " & Now & " | User: " & userEmail
+    Print #1, "Document: " & fileName & " | Date: " & Now & " | User: " & userName
     Close #1
 
     ' Display completion message
     MsgBox "STE tool has been run on this document.", vbInformation
+End Sub
+
+Sub LogCorrection(userName As String, fileName As String, originalWord As String, suggestedWord As String)
+    Dim logFilePath As String
+    logFilePath = "\\path\to\your\log\directory\logfile.txt" ' Update this to your desired log file path
+    
+    Open logFilePath For Append As #1
+    Print #1, "Date: " & Now & " | User: " & userName & " | Document: " & fileName & " | Corrected Word: " & originalWord & " | Suggested Word: " & suggestedWord
+    Close #1
 End Sub
