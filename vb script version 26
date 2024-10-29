@@ -1,0 +1,115 @@
+Sub CheckSTEWordCheck()
+
+    Dim doc As Document
+    Dim incorrectWord As Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim wordRange As Range
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim excelFilePath As String
+    Dim updateCount As Long
+    Dim logFilePath As String
+    Dim summaryFilePath As String
+    Dim userEmail As String
+    Dim correctedWords As Collection
+    Dim tvNo As String, issueNo As String
+    Dim searchText As Range
+
+    ' Set user email
+    userEmail = "user@example.com"
+
+    ' Ensure there is a selection
+    If Selection.Type = wdNoSelection Then
+        MsgBox "Please select the text to be checked.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Set the active document and selected range
+    Set doc = ActiveDocument
+
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "\\path\to\corrections_file.xlsx"
+
+    ' Initialize the dictionary and collection for corrected words
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+    Set correctedWords = New Collection
+
+    ' Open Excel and load corrections into the dictionary
+    Set excelApp = CreateObject("Excel.Application")
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    Set sheet = workbook.Sheets(1)
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row
+
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value))
+        replacementWord = Trim(sheet.Cells(row, 2).Value)
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+
+    ' Capture TV No. and Issue at the beginning of the document
+    Set searchText = doc.Content
+    searchText.Find.ClearFormatting
+    searchText.Find.Text = "TV No: "
+    
+    If searchText.Find.Execute Then
+        tvNo = Trim(Split(searchText.Text, " ")(2)) ' Get the number after "TV No: "
+        searchText.Collapse wdCollapseEnd ' Move to the end of "TV No" text
+        searchText.Find.ClearFormatting
+        searchText.Find.Text = "Issue: "
+        If searchText.Find.Execute Then
+            issueNo = Trim(Split(searchText.Text, " ")(1)) ' Get the number after "Issue: "
+        End If
+    End If
+
+    ' Initialize counters
+    updateCount = 0
+    Dim correctionDetails As String
+    correctionDetails = ""
+
+    ' Main loop for grammar check
+    For Each wordRange In doc.Range.Words
+        Dim coreWord As String
+        coreWord = Trim(LCase(wordRange.Text))
+
+        ' Check if word has already been corrected
+        If Not WordAlreadyCorrected(correctedWords, coreWord) Then
+            If correctionsDict.Exists(coreWord) Then
+                Dim originalText As String
+                originalText = Trim(wordRange.Text)
+                wordRange.Text = originalText & " (" & correctionsDict(coreWord) & ")"
+
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorYellow
+                wordRange.MoveEnd wdCharacter, -Len(correctionsDict(coreWord)) - 3
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorBrightGreen
+
+                correctedWords.Add coreWord
+                updateCount = updateCount + 1
+                correctionDetails = correctionDetails & updateCount & ". " & originalText & " -> " & correctionsDict(coreWord) & vbCrLf
+            End If
+        End If
+    Next wordRange
+
+    ' Log details in the global log file
+    logFilePath = "\\path\to\global_log.txt"
+    logEntry = "Document: " & doc.Name & " | TV No: " & tvNo & " | Issue: " & issueNo & " | User: " & userEmail & " | Timestamp: " & Now & vbCrLf
+    logEntry = logEntry & "Total Corrections: " & updateCount & vbCrLf & correctionDetails
+    Open logFilePath For Append As #1
+    Print #1, logEntry
+    Close #1
+
+    ' Local log (summary) file
+    summaryFilePath = doc.Path & "\summary_v" & GetNextVersion(doc.Path) & ".txt"
+    Open summaryFilePath For Append As #1
+    Print #1, "TV No: " & tvNo & " | Issue: " & issueNo & " | Timestamp: " & Now & vbCrLf
+    Print #1, "Total Corrections: " & updateCount & vbCrLf & correctionDetails
+    Close #1
+
+    MsgBox "STE tool has been run on this document.", vbInformation
+
+End Sub
