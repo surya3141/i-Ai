@@ -1,0 +1,198 @@
+Here’s a structured user manual for your macro tool. This manual covers the installation, usage, file structure, and troubleshooting, which will help end users get acquainted with the tool.
+
+
+---
+
+User Manual for Document Correction Macro Tool
+
+1. Introduction
+
+This macro tool is designed to help users automatically correct grammatical errors in Word documents. It uses a predefined set of corrections from an Excel file and logs the details locally and globally.
+
+Purpose
+
+Automates the process of finding and correcting common grammatical errors.
+
+Creates a local log of corrections for each document.
+
+Maintains a global log to track all corrections across users for reporting and compliance.
+
+
+
+---
+
+2. System Requirements
+
+Microsoft Word
+
+Microsoft Excel
+
+Network access to the shared Excel file and global log location
+
+
+
+---
+
+3. Installation and Setup
+
+1. Download the Macro Script: Save the VBA script provided in this guide or by your administrator.
+
+
+2. Enable Macros in Word: Go to File > Options > Trust Center > Trust Center Settings > Macro Settings and select "Enable all macros."
+
+
+3. Open VBA Editor: In Word, press Alt + F11 to open the VBA editor.
+
+
+4. Insert the Script: Copy and paste the macro code into a new VBA module.
+
+
+5. Save the Document: Save the Word document as a macro-enabled file (.docm).
+
+
+
+
+---
+
+4. Using the Macro
+
+Step 1: Document Preparation
+
+Open the Document: Ensure the document is open and the text you want to check is selected.
+
+Check Connection: Verify network access to the shared Excel file for corrections.
+
+
+Step 2: Running the Macro
+
+1. Run the Macro:
+
+Go to the Developer tab, click Macros, select CheckSTEWordCheck, and click Run.
+
+
+
+2. Automatic Correction:
+
+The macro will scan the selected text for errors listed in the Excel file.
+
+Each correction will be highlighted (original text in yellow, corrected text in green).
+
+
+
+3. Local and Global Logs:
+
+A local summary log is created in the document’s directory, with a versioned filename (e.g., DocumentName_v1.txt).
+
+A global log entry is created in the shared folder, with a new file generated daily (e.g., global_log_YYYYMMDD.txt).
+
+
+
+
+
+---
+
+5. File Structure and Naming Conventions
+
+Correction Source File
+
+Location: The Excel file containing predefined corrections is located at \\gbwyndna-a003a.gbwynnas-001a-g.rolls-royce.local\PortfolioENG_NLR\EFS\03_TV_Support\WIP\Macro for Word STE\grammatical_corrections.xlsx.
+
+Format: The first column contains incorrect words, and the second column lists the corrected words.
+
+
+Global Log Files
+
+Location: \\path\to\global\logs\
+
+Naming: New files are created daily, named global_log_YYYYMMDD.txt.
+
+Content: Each entry includes the document name, user email, timestamp, number of corrections, and details of each correction.
+
+
+Local Summary Logs
+
+Location: Saved in the same directory as the Word document.
+
+Naming: File name is the document name followed by the version number, e.g., DocumentName_v1.txt.
+
+Content: The summary log contains document metadata and a list of corrections made.
+
+
+
+---
+
+6. Error Handling and Troubleshooting
+
+Common Issues and Solutions
+
+Excel File Not Found:
+
+Ensure network access to the Excel file location and verify the file path is correct.
+
+
+Log File Access Issues:
+
+Check folder permissions if you cannot create or save log files in the designated directories.
+
+
+Macro Fails to Run:
+
+Confirm that macros are enabled in Word and the VBA code is correctly installed.
+
+
+Corrections Not Applied:
+
+Verify that the selected text is appropriate and check the Excel file for corresponding corrections.
+
+
+
+Tips for Optimal Use
+
+Always check the first page of the document after running the macro to verify the metadata (first 24 characters after the header).
+
+Ensure the Excel file with corrections is up-to-date.
+
+Regularly save and back up log files if needed.
+
+
+
+---
+
+7. Frequently Asked Questions (FAQs)
+
+1. What if the corrections are incorrect?
+
+Contact your administrator to update the corrections file.
+
+
+
+2. How often are the global log files created?
+
+A new global log file is created daily.
+
+
+
+3. Can I modify the macro code for specific needs?
+
+Yes, but it’s recommended to consult the administrator for major changes.
+
+
+
+
+
+---
+
+8. Support and Contacts
+
+Technical Support: For issues with macro setup or usage, contact the IT support team.
+
+Updating the Correction File: Contact [Correction File Manager] at [Manager’s Contact Information].
+
+General Questions: For general questions, reach out to your team lead.
+
+
+
+---
+
+This user manual should cover all aspects of using the macro and help users get started and troubleshoot common issues. Let me know if you'd like to add specific details!
+
