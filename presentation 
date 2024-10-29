@@ -1,0 +1,225 @@
+To create an effective end-user presentation for the VB script you’re implementing, here’s a suggested structure with content ideas for each slide:
+
+
+---
+
+Slide 1: Title Slide
+
+Title: Using the Word Grammar Correction Tool
+
+Subtitle: Automated Grammar & Spelling Correction in Word
+
+Presented by: [Your Name/Team Name]
+
+
+
+---
+
+Slide 2: Introduction to the Tool
+
+Purpose: This tool helps standardize document language by automatically checking and suggesting grammar and spelling corrections.
+
+Usage Scenario: Ideal for documents with strict language guidelines, like technical documents, manuals, or reports.
+
+Benefits:
+
+Saves time on manual proofreading.
+
+Ensures language consistency.
+
+Reduces errors before publishing.
+
+
+
+
+---
+
+Slide 3: How It Works
+
+Selection: Select the text in your Word document you want to check.
+
+Automated Search: The tool compares selected text with a predefined list of corrections in an Excel file.
+
+Replacement Suggestions: Suggested words are added in parentheses next to the original text and highlighted in yellow and green for easy identification.
+
+
+
+---
+
+Slide 4: File Requirements
+
+Excel File: The tool uses an Excel file with two columns:
+
+Column 1: Incorrect words.
+
+Column 2: Suggested corrections.
+
+
+Location: Ensure the Excel file is saved in a specific, accessible location (e.g., \path\to\excel\file\grammatical_corrections.xlsx).
+
+
+
+---
+
+Slide 5: Running the Tool
+
+Step 1: Select the text in your Word document that you want to check.
+
+Step 2: Run the macro named CheckSTEWordCheck.
+
+Step 3: Review changes – highlighted words and suggestions appear directly in the document.
+
+Note: If no text is selected, the macro will display a prompt asking to select text.
+
+
+
+---
+
+Slide 6: Log Files and Documentation
+
+Global Log:
+
+Created daily with a new file for each date.
+
+Tracks all users and changes made on that day.
+
+Stores in a predefined global folder (global_log_YYYYMMDD.txt).
+
+
+Local Summary:
+
+A summary file specific to each document is created.
+
+Includes the document name and version number (e.g., DocumentName_v1.txt).
+
+Provides a record of all corrections for easy review.
+
+
+
+
+---
+
+Slide 7: File Structure and Naming
+
+Global Log:
+
+Each global log file is named with the date (global_log_YYYYMMDD.txt).
+
+Stored in a central location for easy reference and tracking.
+
+
+Local Summary:
+
+Uses the document name with a version suffix (e.g., Report_v1.txt).
+
+New versions are created each time the macro is run on a specific document.
+
+
+
+
+---
+
+Slide 8: Error Handling and Troubleshooting
+
+Missing Files:
+
+Ensure the Excel file with corrections is accessible and correctly named.
+
+
+Excel Issues:
+
+Make sure Excel is installed and accessible on your machine.
+
+If there are issues, restart Excel or verify the file path.
+
+
+Large Document Warnings:
+
+For large selections, the process may take longer.
+
+Progress messages are displayed every 10 corrections to track the tool's operation.
+
+
+
+
+---
+
+Slide 9: Best Practices for Using the Tool
+
+Use Consistently: Run the tool as a final check before publishing or sharing documents.
+
+Review Suggestions: Carefully review each highlighted suggestion for accuracy.
+
+Log File Management: Regularly check global logs to monitor consistent language usage across documents.
+
+Version Control: Keep track of document versions to ensure consistency across updates.
+
+
+
+---
+
+Slide 10: Feedback and Support
+
+Support Contact: Reach out to [Support Contact/IT Team] for issues or questions.
+
+Feedback: Provide feedback to help us improve the tool for future updates.
+
+Documentation: Refer to the user manual or this presentation for more details.
+
+
+
+---
+
+Slide 11: Q&A
+
+Open the floor for any questions or clarifications.
+
+
+
+---
+
+Tips for Presentation Delivery
+
+Demonstration: If possible, include a live demo of the tool in action.
+
+Emphasize Benefits: Focus on time savings and consistency, as these are the primary user benefits.
+
+Provide Handouts: Offer a printed or digital copy of the instructions for easy reference.
+
+
+
+---
+
+This presentation outline should give users a clear understanding of the tool’s purpose, operation, and benefits, and help ensure effective adoption across the team. Let me know if you’d like any additional sections or details for specific slides.
+
+To inform end-users about the location of the Excel file used for daily log files, you could add a dedicated slide to your presentation or include this information in the "File Requirements" or "Log Files and Documentation" slides. Here’s an example of how to communicate this effectively:
+
+
+---
+
+Slide 6 (Expanded): Log Files and Documentation
+
+Global Log:
+
+File Location: The global log files are stored in a centralized shared location: \\path\to\global\logs\. This folder contains a new log file generated daily, with the naming convention global_log_YYYYMMDD.txt.
+
+File Naming: Each daily log file is created automatically with the date in its name for easy tracking and reference.
+
+Purpose: The global log file maintains a record of all user corrections across documents, which is useful for tracking overall usage and compliance with language standards.
+
+
+Local Summary:
+
+Stored in the same directory as the document you’re working on.
+
+Naming Convention: Each summary file is named after the document, with a version suffix (e.g., DocumentName_v1.txt).
+
+Purpose: Allows users to review the list of corrections specific to their document.
+
+
+
+
+---
+
+Adding this information will ensure users understand where to find the global logs and how they are organized. Let me know if you’d like further customization on this!
+
