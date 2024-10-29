@@ -1,0 +1,174 @@
+Sub CheckSTEWordCheck()
+
+    Dim doc As Document
+    Dim incorrectWord As Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim wordRange As Range
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim excelFilePath As String
+    Dim updateCount As Long
+    Dim globalLogFilePath As String
+    Dim summaryFilePath As String
+    Dim userEmail As String
+    Dim logEntry As String
+    Dim correctedWords As Collection
+    Dim first24Chars As String
+    Dim selectedRange As Range
+
+    ' Set user email (modify this line to retrieve the user's email dynamically if required)
+    userEmail = "user@example.com"
+
+    ' Ensure there is a selection
+    If Selection.Type = wdNoSelection Then
+        MsgBox "Please select the text to be checked.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Set the active document and selected range
+    Set doc = ActiveDocument
+    Set selectedRange = Selection.Range
+
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "\\path\to\your\excel\file\grammatical_corrections.xlsx" ' Adjust this path
+
+    ' Initialize the dictionary and collection for corrected words
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+    Set correctedWords = New Collection
+
+    ' Open Excel
+    On Error Resume Next
+    Set excelApp = CreateObject("Excel.Application")
+    If excelApp Is Nothing Then
+        MsgBox "Excel could not be started. Make sure Excel is installed.", vbCritical
+        Exit Sub
+    End If
+
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    On Error GoTo 0
+
+    If workbook Is Nothing Then
+        MsgBox "The specified Excel file could not be opened. Please check the file path.", vbCritical
+        excelApp.Quit
+        Set excelApp = Nothing
+        Exit Sub
+    End If
+
+    Set sheet = workbook.Sheets(1)
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row ' -4162 is xlUp
+
+    ' Load corrections into the dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value))
+        replacementWord = Trim(sheet.Cells(row, 2).Value)
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+
+    ' Close Excel
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+
+    ' Retrieve the first 24 characters after the header on the first page
+    first24Chars = Mid(doc.Content.Text, 1, 24)
+
+    ' Initialize counters
+    updateCount = 0
+    Dim correctionDetails As String
+    correctionDetails = ""
+
+    ' Main loop for grammar check
+    For Each wordRange In selectedRange.Words
+        ' Process only words that are not already corrected
+        Dim coreWord As String
+        coreWord = Trim(LCase(wordRange.Text))
+
+        ' Check if the word has already been corrected
+        If Not WordAlreadyCorrected(correctedWords, coreWord) Then
+            ' Check if word is in corrections dictionary
+            If correctionsDict.Exists(coreWord) Then
+                Dim originalText As String
+                originalText = Trim(wordRange.Text)
+
+                ' Replace text and apply color formatting
+                wordRange.Text = originalText & " (" & correctionsDict(coreWord) & ")"
+
+                ' Highlight the original word in yellow
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorYellow
+
+                ' Highlight the suggestion in green
+                wordRange.MoveEnd wdCharacter, -Len(correctionsDict(coreWord)) - 3 ' Moves to the correction
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorBrightGreen
+
+                ' Mark the word as corrected
+                correctedWords.Add coreWord
+                updateCount = updateCount + 1
+                correctionDetails = correctionDetails & updateCount & ". " & originalText & " -> " & correctionsDict(coreWord) & vbCrLf
+            End If
+        End If
+
+        ' Allow Word to process events every 10 updates
+        If updateCount Mod 10 = 0 Then DoEvents
+    Next wordRange
+
+    ' Final cleanup
+    Application.ScreenUpdating = True
+    Application.StatusBar = "Grammar check completed."
+
+    ' Generate the global log file path with today's date
+    globalLogFilePath = "\\path\to\global_log\global_log_" & Format(Date, "YYYYMMDD") & ".txt"
+    logEntry = "Document: " & doc.Name & " | Text: " & first24Chars & " | User: " & userEmail & " | Timestamp: " & Now & vbCrLf
+    logEntry = logEntry & "Total Corrections: " & updateCount & vbCrLf & correctionDetails
+    Open globalLogFilePath For Append As #1
+    Print #1, logEntry
+    Close #1
+
+    ' Create or update the document-specific summary file with versioned naming
+    Dim docName As String
+    docName = Left(doc.Name, InStrRev(doc.Name, ".") - 1) ' Remove the file extension
+    summaryFilePath = doc.Path & "\" & docName & "_v" & GetNextVersion(doc.Path, docName) & ".txt"
+    Open summaryFilePath For Append As #1
+    Print #1, "Text: " & first24Chars & " | Timestamp: " & Now & vbCrLf
+    Print #1, "Total Corrections: " & updateCount & vbCrLf & correctionDetails
+    Close #1
+
+    ' Display completion message
+    MsgBox "STE tool has been run on this document.", vbInformation
+
+End Sub
+
+Function WordAlreadyCorrected(correctedWords As Collection, word As String) As Boolean
+    Dim i As Long
+    WordAlreadyCorrected = False
+    For i = 1 To correctedWords.Count
+        If correctedWords(i) = word Then
+            WordAlreadyCorrected = True
+            Exit Function
+        End If
+    Next i
+End Function
+
+Function GetNextVersion(folderPath As String, docName As String) As Long
+    Dim fileName As String
+    Dim version As Long
+    version = 1
+
+    ' Loop through files in the folder to find the highest version number for the specific document
+    fileName = Dir(folderPath & "\" & docName & "_v*.txt")
+    While fileName <> ""
+        If InStr(fileName, "_v") > 0 Then
+            Dim currentVersion As Long
+            currentVersion = CLng(Mid(fileName, InStrRev(fileName, "_v") + 2, InStrRev(fileName, ".") - InStrRev(fileName, "_v") - 2))
+            If currentVersion >= version Then
+                version = currentVersion + 1
+            End If
+        End If
+        fileName = Dir
+    Wend
+
+    GetNextVersion = version
+End Function
