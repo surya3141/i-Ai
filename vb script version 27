@@ -1,0 +1,161 @@
+Sub CheckSTEWordCheck()
+
+    Dim doc As Document
+    Dim incorrectWord As Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim wordRange As Range
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim excelFilePath As String
+    Dim updateCount As Long
+    Dim logFilePath As String
+    Dim summaryFilePath As String
+    Dim summaryVersion As Long
+    Dim userEmail As String
+    Dim logEntry As String
+    Dim correctedWords As Collection
+    Dim tvNo As String, issueNo As String
+    Dim searchText As Range
+
+    userEmail = "user@example.com"
+
+    If Selection.Type = wdNoSelection Then
+        MsgBox "Please select the text to be checked.", vbExclamation
+        Exit Sub
+    End If
+
+    Set doc = ActiveDocument
+    Set selectedRange = Selection.Range
+
+    excelFilePath = "\\gbwyndna-a003a.gbwynnas-001a-g.rolls-royce.local\PortfolioENG_NLR\EFS\03_TV_Support\WIP\Macro for Word STE\grammatical_corrections.xlsx"
+
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+    Set correctedWords = New Collection
+
+    On Error Resume Next
+    Set excelApp = CreateObject("Excel.Application")
+    If excelApp Is Nothing Then
+        MsgBox "Excel could not be started. Make sure Excel is installed.", vbCritical
+        Exit Sub
+    End If
+
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    On Error GoTo 0
+
+    If workbook Is Nothing Then
+        MsgBox "The specified Excel file could not be opened. Please check the file path.", vbCritical
+        excelApp.Quit
+        Set excelApp = Nothing
+        Exit Sub
+    End If
+
+    Set sheet = workbook.Sheets(1)
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row
+
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value))
+        replacementWord = Trim(sheet.Cells(row, 2).Value)
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+
+    ' Retrieve TV No and Issue from the first page (after header)
+    Set searchText = doc.StoryRanges(wdMainTextStory)
+    searchText.Find.ClearFormatting
+    searchText.Find.Text = "TV No: "
+    If searchText.Find.Execute Then
+        ' Capture the number right after "TV No: "
+        tvNo = Trim(Split(searchText.Text, ":")(1))
+        searchText.Collapse wdCollapseEnd
+        searchText.Find.Text = "Issue: "
+        If searchText.Find.Execute Then
+            ' Capture the issue number after "Issue: "
+            issueNo = Trim(Split(searchText.Text, ":")(1))
+        End If
+    End If
+
+    updateCount = 0
+    Dim correctionDetails As String
+    correctionDetails = ""
+
+    For Each wordRange In selectedRange.Words
+        Dim coreWord As String
+        coreWord = Trim(LCase(wordRange.Text))
+
+        If Not WordAlreadyCorrected(correctedWords, coreWord) Then
+            If correctionsDict.Exists(coreWord) Then
+                Dim originalText As String
+                originalText = Trim(wordRange.Text)
+
+                wordRange.Text = originalText & " (" & correctionsDict(coreWord) & ")"
+
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorYellow
+                wordRange.MoveEnd wdCharacter, -Len(correctionsDict(coreWord)) - 3
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorBrightGreen
+
+                correctedWords.Add coreWord
+                updateCount = updateCount + 1
+                correctionDetails = correctionDetails & updateCount & ". " & originalText & " -> " & correctionsDict(coreWord) & vbCrLf
+            End If
+        End If
+
+        If updateCount Mod 10 = 0 Then DoEvents
+    Next wordRange
+
+    Application.ScreenUpdating = True
+    Application.StatusBar = "Grammar check completed."
+
+    logFilePath = "\\path\to\global_log.txt"
+    logEntry = "Document: " & doc.Name & " | TV No: " & tvNo & " | Issue: " & issueNo & " | User: " & userEmail & " | Timestamp: " & Now & vbCrLf
+    logEntry = logEntry & "Total Corrections: " & updateCount & vbCrLf & correctionDetails
+    Open logFilePath For Append As #1
+    Print #1, logEntry
+    Close #1
+
+    summaryFilePath = doc.Path & "\summary_v" & GetNextVersion(doc.Path) & ".txt"
+    Open summaryFilePath For Append As #1
+    Print #1, "TV No: " & tvNo & " | Issue: " & issueNo & " | Timestamp: " & Now & vbCrLf
+    Print #1, "Total Corrections: " & updateCount & vbCrLf & correctionDetails
+    Close #1
+
+    MsgBox "STE tool has been run on this document.", vbInformation
+
+End Sub
+
+Function WordAlreadyCorrected(correctedWords As Collection, word As String) As Boolean
+    Dim i As Long
+    WordAlreadyCorrected = False
+    For i = 1 To correctedWords.Count
+        If correctedWords(i) = word Then
+            WordAlreadyCorrected = True
+            Exit Function
+        End If
+    Next i
+End Function
+
+Function GetNextVersion(folderPath As String) As Long
+    Dim fileName As String
+    Dim version As Long
+    version = 1
+
+    fileName = Dir(folderPath & "\summary_v*.txt")
+    While fileName <> ""
+        If InStr(fileName, "summary_v") > 0 Then
+            Dim currentVersion As Long
+            currentVersion = CLng(Mid(fileName, InStrRev(fileName, "_v") + 2, InStrRev(fileName, ".") - InStrRev(fileName, "_v") - 2))
+            If currentVersion >= version Then
+                version = currentVersion + 1
+            End If
+        End If
+        fileName = Dir
+    Wend
+
+    GetNextVersion = version
+End Function
