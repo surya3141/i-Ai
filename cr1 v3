@@ -1,0 +1,157 @@
+Sub STEWordCheckingTool()
+
+    Dim doc As Document
+    Dim incorrectWord As Variant
+    Dim replacementWord As String
+    Dim correctionsDict As Object
+    Dim wordRange As Range
+    Dim excelApp As Object, workbook As Object, sheet As Object
+    Dim row As Long, lastRow As Long
+    Dim excelFilePath As String
+    Dim updateCount As Long
+    Dim globalLogFilePath As String
+    Dim summaryFilePath As String
+    Dim userEmail As String
+    Dim logEntry As String
+    Dim correctedWords As Collection
+    Dim first26Chars As String
+    Dim selectedRange As Range
+    Dim cancelFlag As Boolean
+
+    ' Set user's email
+    userEmail = Application.UserName
+
+    ' Ensure there is a selection
+    If Selection.Type = wdNoSelection Then
+        MsgBox "Please select the text to be checked.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Update status bar to indicate that the macro is running
+    Application.StatusBar = "Macro is currently running. Press ESC to cancel."
+
+    ' Set the active document and selected range
+    Set doc = ActiveDocument
+    Set selectedRange = Selection.Range
+
+    ' Specify the Excel file path containing corrections
+    excelFilePath = "\\gbwyndna-a003a.gbwynnas-001a-g-rolls-royce.local\PortfolioENG_NLR\EFS\03_TV_Support\WIP\STE Word global summary grammatical corrections.xlsx"
+
+    ' Initialize the dictionary and collection
+    Set correctionsDict = CreateObject("Scripting.Dictionary")
+    Set correctedWords = New Collection
+
+    ' Open Excel
+    On Error Resume Next
+    Set excelApp = CreateObject("Excel.Application")
+    If excelApp Is Nothing Then
+        MsgBox "Excel could not be started. Make sure Excel is installed.", vbCritical
+        Exit Sub
+    End If
+    excelApp.Visible = False
+    Set workbook = excelApp.Workbooks.Open(excelFilePath)
+    On Error GoTo 0
+
+    If workbook Is Nothing Then
+        MsgBox "The specified Excel file could not be opened. Please check the file path.", vbCritical
+        excelApp.Quit
+        Set excelApp = Nothing
+        Exit Sub
+    End If
+
+    Set sheet = workbook.Sheets(1)
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(xlUp).Row
+
+    ' Load corrections into the dictionary
+    For row = 2 To lastRow
+        incorrectWord = Trim(LCase(sheet.Cells(row, 1).Value))
+        replacementWord = Trim(sheet.Cells(row, 2).Value)
+        If Not correctionsDict.Exists(incorrectWord) Then
+            correctionsDict.Add incorrectWord, replacementWord
+        End If
+    Next row
+
+    ' Close Excel
+    workbook.Close False
+    excelApp.Quit
+    Set excelApp = Nothing
+
+    ' Retrieve the first 26 characters after the header on the first page
+    first26Chars = Mid(doc.Content.Text, 1, 26)
+
+    ' Initialize counters
+    updateCount = 0
+    Dim correctionDetails As String
+    correctionDetails = ""
+
+    ' Main loop for grammar check
+    For Each wordRange In selectedRange.Words
+        Dim coreWord As String
+        coreWord = Trim(LCase(wordRange.Text))
+
+        ' Check if the word has already been corrected
+        If Not WordAlreadyCorrected(correctedWords, coreWord) Then
+            ' Check if word is in corrections dictionary
+            If correctionsDict.Exists(coreWord) Then
+                Dim originalText As String
+                originalText = Trim(wordRange.Text)
+
+                ' Replace text and apply color formatting
+                wordRange.Text = originalText & " (" & correctionsDict(coreWord) & ")"
+
+                ' Highlight the original word in yellow
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorGreen
+
+                ' Highlight the suggestion in green
+                wordRange.MoveEnd wdCharacter, -Len(correctionsDict(coreWord)) - 3
+                wordRange.Font.Shading.BackgroundPatternColor = wdColorYellow
+
+                ' Mark the word as corrected
+                correctedWords.Add coreWord
+                updateCount = updateCount + 1
+                correctionDetails = correctionDetails & updateCount & ". " & originalText & " -> " & correctionsDict(coreWord) & vbCrLf
+            End If
+        End If
+
+        ' Allow Word to process events and check for ESC key every 10 updates
+        If updateCount Mod 10 = 0 Then
+            DoEvents
+            If Application.DisplayStatusBar = False Then ' If user presses ESC, the status bar gets disabled
+                cancelFlag = True
+                Exit For
+            End If
+        End If
+    Next wordRange
+
+    If cancelFlag Then
+        MsgBox "Operation cancelled by the user.", vbExclamation
+        Application.StatusBar = False
+        Exit Sub
+    End If
+
+    ' Generate the global log file path with today's date
+    globalLogFilePath = "\\gbwyndna-a003a.gbwynnas-001a-g.rolls-royce.local\PortfolioENG_NLR\EFS\03_TV_Support\WIP\STE Word global summary\STE_Check_global_log_" & Format(Date, "YYYYMMDD") & ".txt"
+    logEntry = "Document: " & doc.Name & " | Text: " & first26Chars & " | User: " & userEmail & " | Timestamp: " & Now & vbCrLf
+    logEntry = logEntry & "Total Corrections: " & updateCount & vbCrLf & correctionDetails
+
+    Open globalLogFilePath For Append As #1
+    Print #1, logEntry
+    Close #1
+
+    ' Create or update the document-specific summary file with versioned naming
+    Dim docName As String
+    docName = Left(doc.Name, InStrRev(doc.Name, ".") - 1)
+    summaryFilePath = doc.Path & "\" & docName & "_v" & GetNextVersion(doc.Path, docName) & ".txt"
+
+    Open summaryFilePath For Append As #1
+    Print #1, "Text: " & first26Chars & " | Timestamp: " & Now & vbCrLf
+    Print #1, "Total Corrections: " & updateCount & vbCrLf & correctionDetails
+    Close #1
+
+    ' Clear the status bar
+    Application.StatusBar = False
+
+    ' Display completion message after all processing is complete
+    MsgBox "STE tool has been run on this document.", vbInformation
+
+End Sub
