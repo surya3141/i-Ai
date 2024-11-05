@@ -1,0 +1,27 @@
+import openpyxl
+import re
+
+# Load the Excel file and select the active sheet
+file_path = 'your_file.xlsx'  # Replace with your file path
+wb = openpyxl.load_workbook(file_path)
+sheet = wb.active
+
+# Add the header in column D
+sheet['D1'] = 'FRS Nos'
+
+# Iterate through each cell in column B, starting from row 2
+for row in range(2, sheet.max_row + 1):
+    cell_value = sheet[f'B{row}'].value
+    if cell_value:
+        # Search for words that start with "FRS"
+        match = re.search(r'\bFRS\w*\b', cell_value)
+        if match:
+            # If found, write it to column D
+            sheet[f'D{row}'] = match.group(0)
+        else:
+            # If not found, keep it empty
+            sheet[f'D{row}'] = ''
+
+# Save the workbook
+wb.save('updated_file.xlsx')  # Replace with your desired output file path
+print("Script executed and Excel file updated successfully.")
