@@ -1,1 +1,1 @@
-=IFERROR(INDEX('2023-24 TVs'!D:D, MATCH(1, ('2023-24 TVs'!C:C="Service TV") * (COUNTIF(Sheet2!$A$1:A1, '2023-24 TVs'!D:D)=0), 0)), "")
+=IFERROR(INDEX('PD&T Child Cards 2022 2024'!$B:$B, SMALL(IF(('PD&T Child Cards 2022 2024'!$BJ:$BJ<>"Closed") * ('PD&T Child Cards 2022 2024'!$BJ:$BJ>4) * ('PD&T Child Cards 2022 2024'!$BJ:$BJ<>"customCardId"), ROW('PD&T Child Cards 2022 2024'!$BJ:$BJ)), ROW(A1))), "")
