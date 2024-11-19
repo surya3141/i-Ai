@@ -1,1 +1,1 @@
-=IFERROR(INDEX('PD&T Child Cards 2022 2024'!$B:$B, SMALL(IF(('PD&T Child Cards 2022 2024'!$BJ:$BJ<>"Closed") * ('PD&T Child Cards 2022 2024'!$BJ:$BJ>4) * ('PD&T Child Cards 2022 2024'!$BJ:$BJ<>"customCardId"), ROW('PD&T Child Cards 2022 2024'!$BJ:$BJ)), ROW(A1))), "")
+=IFERROR(INDEX('Team List Automate'!$A:$A, SMALL(IF(('Team List Automate'!$H$2:$H$100="Srinidhi") * (('Team List Automate'!$D$2:$D$100="Atr") + ('Team List Automate'!$D$2:$D$100="Atr/CA")), ROW('Team List Automate'!$A$2:$A$100)), ROW(A1))), "")
