@@ -1,0 +1,19 @@
+=IF(
+    $B$7 = "",
+    SWITCH(
+        $B$6,
+        "Service", SUM(DeliveryCopy[Core Compressors, Containment Service]),
+        "Repair", SUM(DeliveryCopy[Core Compressors, Containment Repair]),
+        "Cancelled", SUM(DeliveryCopy[Core Compressors, Containment Cancelled]),
+        "Reject", SUM(DeliveryCopy[Core Compressors, Containment Reject]),
+        SUM(DeliveryCopy[Core Compressors, Containment])  // Default case if B6 is not Service, Repair, etc.
+    ),
+    SWITCH(
+        $B$6,
+        "Service", SUMIF(Delivery[Programme], $B$7, DeliveryCopy[Core Compressors, Containment Service]),
+        "Repair", SUMIF(Delivery[Programme], $B$7, DeliveryCopy[Core Compressors, Containment Repair]),
+        "Cancelled", SUMIF(Delivery[Programme], $B$7, DeliveryCopy[Core Compressors, Containment Cancelled]),
+        "Reject", SUMIF(Delivery[Programme], $B$7, DeliveryCopy[Core Compressors, Containment Reject]),
+        SUMIF(Delivery[Programme], $B$7, DeliveryCopy[Core Compressors, Containment]) // Default case
+    )
+)
