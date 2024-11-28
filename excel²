@@ -1,0 +1,27 @@
+Sub GenerateCalendar()
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets(1) ' Adjust to your sheet name
+
+    Dim week As Integer
+    Dim col As Integer
+    Dim row As Integer
+    Dim weekdays As Variant
+
+    weekdays = Array("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    week = 1
+    row = 5
+    col = 4
+
+    Do While week <= 52
+        ws.Cells(row, col).Value = "Week " & week
+        For i = 0 To 6
+            ws.Cells(row, col + 1 + i).Value = weekdays(i)
+        Next i
+        week = week + 1
+        col = col + 10
+        If col > ws.Columns.Count - 7 Then
+            col = 4
+            row = row + 2
+        End If
+    Loop
+End Sub
