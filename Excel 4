@@ -1,0 +1,5 @@
+=SUMPRODUCT(
+    (INDEX(TVDelivered, 0, MATCH("Week " & B1, TVDelivered[#Headers], 0)) > 3) *
+    (TVDelivered[Lead] = "Srinidhi") *
+    (TVDelivered[Author & Author/CA only] = "yes")
+)
