@@ -1,0 +1,191 @@
+Here’s an initial draft for the Knowledge Transfer (KT) Manual. You can customize it further based on your specific tasks and responsibilities:
+
+
+---
+
+Knowledge Transfer Manual
+Prepared for Sree Lakshman
+
+Prepared By: Surya A
+Date: [Insert Date]
+
+
+---
+
+1. Introduction
+
+This manual serves as a comprehensive guide to ensure a seamless transition of responsibilities. It includes details of day-to-day activities, key files, processes, and tools that are critical for the successful management of the team’s operations.
+
+
+---
+
+2. Overview of Responsibilities
+
+2.1 Role Objectives
+
+Ensure timely delivery of technical variance (TV) reports and updates.
+
+Maintain accurate records and dashboards for team and management use.
+
+Support weekly and monthly operational reviews by preparing necessary data and insights.
+
+
+2.2 Key Duties
+
+1. Daily Updates:
+
+Refresh and duplicate daily reports using macros.
+
+Generate TV flowline reports and share with stakeholders.
+
+Ensure accurate tracking of TVs across all stages.
+
+
+
+2. Weekly Deliverables:
+
+Prepare week iteration reports and distribute them to relevant recipients.
+
+Update weekly data in all dashboards and ensure they align with current program needs.
+
+Conduct checks on report accuracy before sharing.
+
+
+
+3. Monthly Deliverables:
+
+Publish monthly reports, including RR CCM reports.
+
+Support town hall presentations by providing consolidated data.
+
+
+
+4. Collaboration and Communication:
+
+Coordinate with team members and stakeholders for inputs and updates.
+
+Respond to ad hoc requests for data or analysis.
+
+
+
+
+
+---
+
+3. Tools and Files
+
+3.1 Files and Reports
+
+Daily Reports:
+
+TV Count Report: Tracks TVs at different stages.
+
+Chart Reports: Visual representation of TV trends.
+
+
+Weekly Files:
+
+Week Iteration Reports: Summarize weekly progress.
+
+Kanbanize Queries: Tracks updates for team and individual performances.
+
+
+Monthly Reports:
+
+RR CCM File: Consolidates parent card usage and technical variance status.
+
+Dashboard Reports: Metrics for HU secured, TV drafted, and CA review statuses.
+
+
+
+3.2 Automation Tools
+
+Macros:
+
+For automating repetitive tasks such as report duplication and backup creation.
+
+
+Python Scripts:
+
+Consolidate TV documents and automate data refresh processes.
+
+Copy files from shared locations to local systems.
+
+
+
+3.3 Power BI Dashboards
+
+Dashboards for TV flowline, XWB programs, and other key metrics.
+
+Refreshing data and ensuring updates align with Power Query settings.
+
+
+
+---
+
+4. Day-to-Day Activities
+
+4.1 Daily Routine
+
+Start the day by refreshing the baseline files and running macros for report updates.
+
+Validate data accuracy for daily reports.
+
+Share updated reports with stakeholders by 10 AM.
+
+
+4.2 Weekly Activities
+
+Update week iteration reports every Friday.
+
+Prepare dashboards for program reviews.
+
+Conduct data validations for Kanbanize Power Queries.
+
+
+4.3 Monthly Activities
+
+Publish consolidated monthly reports by the 5th of each month.
+
+Analyze trends and highlight critical areas for management discussions.
+
+
+
+---
+
+5. Knowledge Sharing Resources
+
+Reference Manual: A step-by-step guide for each file and process.
+
+Recorded Sessions: Video tutorials explaining key tasks, macros, and scripts.
+
+Team Structure: Contact details and roles of team members.
+
+
+
+---
+
+6. Pending Items
+
+Ensure to follow up on:
+
+[Insert any pending tasks or responsibilities that need to be addressed before your last working day.]
+
+
+
+---
+
+7. Contact Details
+
+For any further clarifications or support:
+
+Surya A: [Your Contact Information]
+
+Team Leads: [Contact Details of Relevant Leads]
+
+
+
+---
+
+This draft provides a detailed structure for your Knowledge Transfer Manual. Let me know if there are any specific areas you’d like to add or modify.
+
