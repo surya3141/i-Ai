@@ -1,0 +1,71 @@
+Preparation for Weekly and Monthly Reports:
+
+Step-by-step process for creating and publishing reports.
+
+Explanation of query-based data extraction for efficiency.
+
+
+
+2. Team List Management:
+
+Files in the NLR folder (No License Required Folder) (efs tv support > develop flowline > 12.team files).
+
+Details for team categorization and author availability.
+
+
+
+3. Alternative Query Usage:
+
+Queries designed to avoid delays in Kanbanize and optimize file loading.
+
+Data segregation: Open TVs and Closed TVs (6-month timeframe).
+
+
+
+4. TV Delivery Insights:
+
+Author-wise: Weekly, monthly, and weekday-wise analysis.
+
+Program Lead-wise: Weekly and monthly performance insights.
+
+
+
+
+5.2 Day 3: Session 2
+
+1. Working with Automation Tools:
+
+Macros: Automating column-wise TV count updates and chart generation.
+
+Python Scripts:
+
+TV consolidation from NLR folder to local systems.
+
+Extracting comments from Word documents for further processing.
+
+
+
+
+2. Detailed Weekly Reporting:
+
+Column-wise TV Count, In/Out, and WIP data across all programs.
+
+Understanding macros for TV tracking in each sheet.
+
+
+
+3. TV Consolidation and Correction:
+
+Identifying and consolidating TVs delivered within a specific timeframe.
+
+Generating lists of non-ISS TVs for iteration and version 1.
+
+Processing limits and storage optimization on VDI.
+
+
+
+4. Running Scripts for TV Insights:
+
+Steps to extract TV-related data from Word documents.
+
+Estimated processing times and tips for managing VDI resources.
